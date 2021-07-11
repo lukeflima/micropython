@@ -84,6 +84,13 @@ The following methods draw shapes onto the FrameBuffer.
     method draws only a 1 pixel outline whereas the `fill_rect` method
     draws both the outline and interior.
 
+.. method:: FrameBuffer.circle(x, y, r, c)
+.. method:: FrameBuffer.fill_circle(x, y, r, c)
+
+    Draw a circle at the given location, radius and color. The `circle`
+    method draws only a 1 pixel outline whereas the `fill_circle`
+    method draws both the outline and interior.
+
 Drawing text
 ------------
 

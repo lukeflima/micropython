@@ -477,6 +477,90 @@ STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_line_obj, 6, 6, framebuf_line);
 
+STATIC mp_obj_t framebuf_fill_circle(size_t n_args, const mp_obj_t *args) {
+    (void)n_args;
+
+    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_int_t x0 = mp_obj_get_int(args[1]);
+    mp_int_t y0 = mp_obj_get_int(args[2]);
+    mp_int_t r = mp_obj_get_int(args[3]);
+    mp_int_t col = mp_obj_get_int(args[4]);
+
+    int x = r;
+    int y = 0;
+    int err = 0;
+ 
+    while (x >= y)
+    {
+        fill_rect(self, x0 - y, y0 - x, y + y, 1, col);
+        fill_rect(self, x0 - y, y0 + x, y + y, 1, col);
+        fill_rect(self, x0 - x, y0 - y, x + x, 1, col);
+        fill_rect(self, x0 - x, y0 + y, x + x, 1, col);
+        
+        if (err <= 0)
+        {
+            y += 1;
+            err += 2*y + 1;
+        }
+        
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_fill_circle_obj, 5, 5, framebuf_fill_circle);
+
+static inline void setpixel_check_bounds(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
+
+    if(x < 0 || y < 0 || x >= fb->width || y >= fb->height) return;
+    setpixel(fb, x, y, col);
+}
+
+STATIC mp_obj_t framebuf_circle(size_t n_args, const mp_obj_t *args) {
+    (void)n_args;
+
+    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_int_t x0 = mp_obj_get_int(args[1]);
+    mp_int_t y0 = mp_obj_get_int(args[2]);
+    mp_int_t r = mp_obj_get_int(args[3]);
+    mp_int_t col = mp_obj_get_int(args[4]);
+
+    int x = r;
+    int y = 0;
+    int err = 0;
+ 
+    while (x >= y)
+    {
+        setpixel_check_bounds(self, x0 + x, y0 + y, col);
+        setpixel_check_bounds(self, x0 + y, y0 + x, col);
+        setpixel_check_bounds(self, x0 - y, y0 + x, col);
+        setpixel_check_bounds(self, x0 - x, y0 + y, col);
+        setpixel_check_bounds(self, x0 - x, y0 - y, col);
+        setpixel_check_bounds(self, x0 - y, y0 - x, col);
+        setpixel_check_bounds(self, x0 + y, y0 - x, col);
+        setpixel_check_bounds(self, x0 + x, y0 - y, col);
+        
+        if (err <= 0)
+        {
+            y += 1;
+            err += 2*y + 1;
+        }
+        
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_circle_obj, 5, 5, framebuf_circle);
+
 STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
     mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
     mp_obj_t source_in = mp_obj_cast_to_native_base(args[1], MP_OBJ_FROM_PTR(&mp_type_framebuf));
@@ -603,6 +687,8 @@ STATIC const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_hline), MP_ROM_PTR(&framebuf_hline_obj) },
     { MP_ROM_QSTR(MP_QSTR_vline), MP_ROM_PTR(&framebuf_vline_obj) },
     { MP_ROM_QSTR(MP_QSTR_rect), MP_ROM_PTR(&framebuf_rect_obj) },
+    { MP_ROM_QSTR(MP_QSTR_circle), MP_ROM_PTR(&framebuf_circle_obj) },
+    { MP_ROM_QSTR(MP_QSTR_fill_circle), MP_ROM_PTR(&framebuf_fill_circle_obj) },
     { MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&framebuf_line_obj) },
     { MP_ROM_QSTR(MP_QSTR_blit), MP_ROM_PTR(&framebuf_blit_obj) },
     { MP_ROM_QSTR(MP_QSTR_scroll), MP_ROM_PTR(&framebuf_scroll_obj) },

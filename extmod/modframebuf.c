@@ -64,6 +64,12 @@ typedef struct _mp_framebuf_p_t {
 #define FRAMEBUF_MHLSB    (3)
 #define FRAMEBUF_MHMSB    (4)
 
+
+#define FRAMEBUF_ROTATION_0_DEGREES    (0)
+#define FRAMEBUF_ROTATION_90_DEGREES   (1)
+#define FRAMEBUF_ROTATION_180_DEGREES  (2)
+#define FRAMEBUF_ROTATION_270_DEGREES  (3)
+
 // Functions for MHLSB and MHMSB
 
 STATIC void mono_horiz_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
@@ -652,32 +658,121 @@ STATIC mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args) {
         col = mp_obj_get_int(args[4]);
     }
 
+    mp_int_t orientation = 0;
+    if (n_args >= 6) {
+        orientation = mp_obj_get_int(args[5]);
+    }
+
+    
+    size_t str_length = strlen(str);
+
+
     // loop over chars
-    for (; *str; ++str) {
-        // get char and make sure its in range of font
-        int chr = *(uint8_t *)str;
-        if (chr < 32 || chr > 127) {
-            chr = 127;
-        }
-        // get char data
-        const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
-        // loop over char data
-        for (int j = 0; j < 8; j++, x0++) {
-            if (0 <= x0 && x0 < self->width) { // clip x
-                uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
-                for (int y = y0; vline_data; vline_data >>= 1, y++) { // scan over vertical column
-                    if (vline_data & 1) { // only draw if pixel set
-                        if (0 <= y && y < self->height) { // clip y
-                            setpixel(self, x0, y, col);
+    switch (orientation) {
+    case FRAMEBUF_ROTATION_0_DEGREES:
+        for (; *str; ++str) {
+            // get char and make sure its in range of font
+            int chr = *(uint8_t *)str;
+            if (chr < 32 || chr > 127) {
+                chr = 127;
+            }
+            // get char data
+            const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
+            // loop over char data
+            for (int j = 0; j < 8; j++, x0++) {
+                if (0 <= x0 && x0 < self->width) { // clip x
+                    uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
+                    for (int y = y0; vline_data; vline_data >>= 1, y++) { // scan over vertical column
+                        if (vline_data & 1) { // only draw if pixel set
+                            if (0 <= y && y < self->height) { // clip y
+                                setpixel(self, x0, y, col);
+                            }
                         }
                     }
                 }
             }
         }
+        break;
+    case FRAMEBUF_ROTATION_90_DEGREES:
+        for (int c = str_length - 1; c >= 0; c--) {
+            // get char and make sure its in range of font
+            int chr = (uint8_t) str[c];
+            if (chr < 32 || chr > 127) {
+                chr = 127;
+            }
+            // get char data
+            const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
+
+            for (int j = 7; j > 0; j--, y0++) {
+                if (0 <= y0 && y0 < self->height) { // clip x
+                    uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
+                    for (int x = x0; vline_data; vline_data >>= 1, x++) { // scan over vertical column
+                        if (vline_data & 1) { // only draw if pixel set
+                            if (0 <= x && x < self->width) { // clip y
+                                setpixel(self, x, y0, col);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        break;
+    case FRAMEBUF_ROTATION_180_DEGREES:
+        for (int c = str_length - 1; c >= 0; c--) {
+            // get char and make sure its in range of font
+            int chr = (uint8_t) str[c];
+            if (chr < 32 || chr > 127) {
+                chr = 127;
+            }
+            // get char data
+            const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
+
+            for (int j = 0; j < 8; j++, x0++) {
+                if (0 <= x0 && x0 < self->width) { // clip x
+                    uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
+                    for (int y = y0; vline_data; vline_data >>= 1, y++) { // scan over vertical column
+                        if (vline_data & 1) { // only draw if pixel set
+                            if (0 <= y && y < self->height) { // clip y
+                                setpixel(self, x0, y, col);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        break;
+    
+    case FRAMEBUF_ROTATION_270_DEGREES:
+            for (; *str; ++str) {
+                // get char and make sure its in range of font
+                int chr = *(uint8_t *)str;
+                if (chr < 32 || chr > 127) {
+                    chr = 127;
+                }
+                // get char data
+                const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
+                // loop over char data
+                for (int j = 7; j > 0; j--, y0++) {
+                    if (0 <= y0 && y0 < self->height) { // clip x
+                        uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
+                        for (int x = x0; vline_data; vline_data >>= 1, x++) { // scan over vertical column
+                            if (vline_data & 1) { // only draw if pixel set
+                                if (0 <= x && x < self->width) { // clip y
+                                    setpixel(self, x, y0, col);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        break;
+    default:
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid orientation"));
+        break;
     }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_text_obj, 4, 5, framebuf_text);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_text_obj, 4, 6, framebuf_text);
 
 #if !MICROPY_ENABLE_DYNRUNTIME
 STATIC const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
@@ -739,7 +834,10 @@ STATIC const mp_rom_map_elem_t framebuf_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_GS4_HMSB), MP_ROM_INT(FRAMEBUF_GS4_HMSB) },
     { MP_ROM_QSTR(MP_QSTR_GS8), MP_ROM_INT(FRAMEBUF_GS8) },
     { MP_ROM_QSTR(MP_QSTR_MONO_HLSB), MP_ROM_INT(FRAMEBUF_MHLSB) },
-    { MP_ROM_QSTR(MP_QSTR_MONO_HMSB), MP_ROM_INT(FRAMEBUF_MHMSB) },
+    { MP_ROM_QSTR(MP_QSTR_ROTATION_0_DEGREES), MP_ROM_INT(FRAMEBUF_ROTATION_0_DEGREES) },
+    { MP_ROM_QSTR(MP_QSTR_ROTATION_90_DEGREES), MP_ROM_INT(FRAMEBUF_ROTATION_90_DEGREES) },
+    { MP_ROM_QSTR(MP_QSTR_ROTATION_180_DEGREES), MP_ROM_INT(FRAMEBUF_ROTATION_180_DEGREES) },
+    { MP_ROM_QSTR(MP_QSTR_ROTATION_270_DEGREES), MP_ROM_INT(FRAMEBUF_ROTATION_270_DEGREES) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(framebuf_module_globals, framebuf_module_globals_table);

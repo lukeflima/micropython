@@ -85,7 +85,6 @@ set(MICROPY_SOURCE_PORT
     machine_adc.c
     machine_i2c.c
     machine_pin.c
-    machine_pwm.c
     machine_rtc.c
     machine_spi.c
     machine_timer.c
@@ -113,7 +112,6 @@ set(MICROPY_SOURCE_QSTR
     ${PROJECT_SOURCE_DIR}/machine_adc.c
     ${PROJECT_SOURCE_DIR}/machine_i2c.c
     ${PROJECT_SOURCE_DIR}/machine_pin.c
-    ${PROJECT_SOURCE_DIR}/machine_pwm.c
     ${PROJECT_SOURCE_DIR}/machine_rtc.c
     ${PROJECT_SOURCE_DIR}/machine_spi.c
     ${PROJECT_SOURCE_DIR}/machine_timer.c
@@ -163,7 +161,9 @@ set(PICO_SDK_COMPONENTS
 
 # Define mpy-cross flags and frozen manifest
 set(MICROPY_CROSS_FLAGS -march=armv7m)
-set(MICROPY_FROZEN_MANIFEST ${PROJECT_SOURCE_DIR}/boards/manifest.py)
+if (NOT MICROPY_FROZEN_MANIFEST)
+    set(MICROPY_FROZEN_MANIFEST ${PROJECT_SOURCE_DIR}/boards/manifest.py)
+endif()
 
 target_sources(${MICROPY_TARGET} PRIVATE
     ${MICROPY_SOURCE_PY}
@@ -219,6 +219,13 @@ target_compile_definitions(${MICROPY_TARGET} PRIVATE
 target_link_libraries(${MICROPY_TARGET}
     ${PICO_SDK_COMPONENTS}
 )
+
+if (MICROPY_HW_ENABLE_DOUBLE_TAP)
+# Enable double tap reset into bootrom.
+target_link_libraries(${MICROPY_TARGET}
+    pico_bootsel_via_double_reset
+)
+endif()
 
 # todo this is a bit brittle, but we want to move a few source files into RAM (which requires
 #  a linker script modification) until we explicitly add  macro calls around the function

@@ -284,6 +284,12 @@ mp_obj_t mp_unary_op(mp_unary_op_t op, mp_obj_t arg) {
                 return result;
             }
         }
+        if (op == MP_UNARY_OP_BOOL) {
+            // Type doesn't have unary_op (or didn't handle MP_UNARY_OP_BOOL),
+            // so is implicitly True as this code path is impossible to reach
+            // if arg==mp_const_none.
+            return mp_const_true;
+        }
         // With MP_UNARY_OP_INT, mp_unary_op() becomes a fallback for mp_obj_get_int().
         // In this case provide a more focused error message to not confuse, e.g. chr(1.0)
         #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
@@ -1074,6 +1080,10 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
     // clear output to indicate no attribute/method found yet
     dest[0] = MP_OBJ_NULL;
     dest[1] = MP_OBJ_NULL;
+
+    // Note: the specific case of obj being an instance type is fast-path'ed in the VM
+    // for the MP_BC_LOAD_ATTR opcode. Instance types handle type->attr and look up directly
+    // in their member's map.
 
     // get the type
     const mp_obj_type_t *type = mp_obj_get_type(obj);
